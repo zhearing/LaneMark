@@ -21,6 +21,8 @@ static int pointNum = 0;
 //the  value of LineBegin_y, LineEnd_y
 static double linebegin_y = 100;
 static double lineend_y = 320;
+//0 present not drawing
+bool drawing_line = 0;
 /*************************************************
 // Method: help
 // Description: describe the usage
@@ -79,16 +81,25 @@ static void onMouse(int event, int x, int y, int, void*)
 	switch (event)
 	{
 	case CV_EVENT_LBUTTONDOWN:
+		if (pointNum == 0 || pointNum == 2)
+		{
+			drawing_line = true;
+		}
+		else if (pointNum == 1 || pointNum == 3)
+		{
+			drawing_line = false;
+		}
 		quad[pointNum % 4].x = x;
 		quad[pointNum % 4].y = y;
 		cout << "x = " << x << " y = " << y << endl;
 		pointNum++;
+		
 
 		break;
 	case CV_EVENT_LBUTTONUP:
 		//finish drawing the rect (use color green for finish)
 
-		circle(img_drawing, cvPoint(x, y), 1, Scalar(0, 255, 0), 1, 8, 0);
+		circle(img_drawing, cvPoint(x, y), 1, Scalar(0, 255, 0), 2, 8, 0);
 
 		if (pointNum == 4)
 		{
@@ -96,6 +107,27 @@ static void onMouse(int event, int x, int y, int, void*)
 
 			cout << "draw quadri line" << endl;
 			drawQuadri(quad);
+		}
+
+		break;
+	case CV_EVENT_MOUSEMOVE:
+		if (drawing_line)
+		{
+			if (pointNum == 1)
+			{
+				img_original.copyTo(img_drawing);
+				circle(img_drawing, quad[0], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, quad[0], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+			}
+			else if (pointNum == 3)
+			{
+				img_original.copyTo(img_drawing);
+				circle(img_drawing, quad[0], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, quad[0], quad[1], Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, quad[1], 1, Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, quad[2], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, quad[2], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+			}
 		}
 
 		break;
@@ -206,7 +238,9 @@ int main(){
 			img_original.copyTo(img_drawing);
 			for (int i = 0; i < pointNum; i++)
 			{
-				circle(img_drawing, quad[i], 1, Scalar(0, 255, 0), 1, 8, 0);
+				circle(img_drawing, quad[i], 1, Scalar(0, 255, 0), 2, 8, 0);
+				if (pointNum == 2)
+					line(img_drawing, quad[0], quad[1], Scalar(0, 255, 0), 2, 8, 0);
 			}
 
 			break;
