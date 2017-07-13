@@ -23,6 +23,10 @@ static double linebegin_y = 100;
 static double lineend_y = 320;
 //0 present not drawing
 bool drawing_line = 0;
+// aemp_flag = 1 present no lane on the road
+bool all_empty_flag = 0;
+bool l_empty_flag = 0;
+bool r_empty_flag = 0;
 /*************************************************
 // Method: help
 // Description: describe the usage
@@ -40,8 +44,11 @@ static void help()
 	cout << "Hot keys: \n"
 		"\tESC - quit the program\n"
 		"\tn - next frame of the video\n"
-		"\tz - undo the last label point \n"
+		"\tz - undo the last label point\n"
 		"\tc - clear all the labels\n"
+		"\tl - no left lane on the road\n"
+		"\tr - no right lane on the road\n"
+		"\tx - no lane on the road\n\n"
 		<< endl;
 }
 /*************************************************
@@ -73,10 +80,9 @@ static void drawQuadri(Point * quad) {
  //Parameter: x Mouse's coordinate
  //Parameter: y
  //History:
-*************************************************/
+ *************************************************/
 static void onMouse(int event, int x, int y, int, void*)
 {
-
 
 	switch (event)
 	{
@@ -91,9 +97,9 @@ static void onMouse(int event, int x, int y, int, void*)
 		}
 		quad[pointNum % 4].x = x;
 		quad[pointNum % 4].y = y;
-		cout << "x = " << x << " y = " << y << endl;
+		//cout << "x = " << x << " y = " << y << endl;
 		pointNum++;
-		
+
 
 		break;
 	case CV_EVENT_LBUTTONUP:
@@ -104,7 +110,6 @@ static void onMouse(int event, int x, int y, int, void*)
 		if (pointNum == 4)
 		{
 			pointNum = 0;
-
 			cout << "draw quadri line" << endl;
 			drawQuadri(quad);
 		}
@@ -148,6 +153,10 @@ static void onMouse(int event, int x, int y, int, void*)
 *************************************************/
 int isempty(Point * quad)
 {
+	if (all_empty_flag)
+	{
+		return 0;
+	}
 	for (int i = 0; i < 4; i++)
 	{
 		if (quad[i].x != 0 || quad[i].y != 0)
@@ -157,6 +166,7 @@ int isempty(Point * quad)
 	}
 	return 1;
 }
+
 int main(){
 	namedWindow("Video");
 	ofstream outfile("1.txt");
@@ -166,27 +176,20 @@ int main(){
 	video.open("out.avi", CV_FOURCC('X', 'V', 'I', 'D'),
 		capture.get(CV_CAP_PROP_FPS), cvSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
 		capture.get(CV_CAP_PROP_FRAME_HEIGHT)));
-	
+
 	capture >> img_original;
 	img_original.copyTo(img_drawing);
 	imshow("Video", img_original);
 	setMouseCallback("Video", onMouse, 0);
 	int frame_counter = 0;
-	while (1){
+	while (1)
+	{
 		int c = waitKey(0);
 		if ((c & 255) == 27)
 		{
 			cout << "Exiting ...\n";
 			break;
 		}
-		quadout[0] = int(double(linebegin_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-		quadout[1] = int(double(lineend_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-		quadout[2] = int(double(linebegin_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
-		quadout[3] = int(double(lineend_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));	
-		quad[0].x = quadout[0], quad[0].y = int(linebegin_y);
-		quad[1].x = quadout[1], quad[1].y = int(lineend_y);
-		quad[2].x = quadout[2], quad[2].y = int(linebegin_y);
-		quad[3].x = quadout[3], quad[3].y = int(lineend_y);
 
 		switch ((char)c)
 		{
@@ -194,7 +197,8 @@ int main(){
 			//read the next frame
 			++frame_counter;
 			capture >> img_original;
-			if (img_original.empty()){
+			if (img_original.empty())
+			{
 				cout << "\nVideo Finished!" << endl;
 				cvDestroyWindow("Video");
 				return 0;
@@ -204,24 +208,51 @@ int main(){
 
 			if (!isempty(quad))
 			{
+				if (!all_empty_flag)
+				{
+					if (frame_counter != 1)
+					{
+						if (!l_empty_flag)
+						{
+							quadout[0] = int(double(linebegin_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
+							quadout[1] = int(double(lineend_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
+							quad[0].x = quadout[0], quad[0].y = int(linebegin_y);
+							quad[1].x = quadout[1], quad[1].y = int(lineend_y);
+						}
+						if (!r_empty_flag)
+						{
+							quadout[2] = int(double(linebegin_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
+							quadout[3] = int(double(lineend_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
+							quad[2].x = quadout[2], quad[2].y = int(linebegin_y);
+							quad[3].x = quadout[3], quad[3].y = int(lineend_y);
+						}
+					}
+					else if ((frame_counter == 1))
+					{
+						quadout[0] = int(double(linebegin_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
+						quadout[1] = int(double(lineend_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
+						quad[0].x = quadout[0], quad[0].y = int(linebegin_y);
+						quad[1].x = quadout[1], quad[1].y = int(lineend_y);
+						quadout[2] = int(double(linebegin_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
+						quadout[3] = int(double(lineend_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
+						quad[2].x = quadout[2], quad[2].y = int(linebegin_y);
+						quad[3].x = quadout[3], quad[3].y = int(lineend_y);
+					}
+				}		
+
 				drawQuadri(quad);
 				//memset(quad, 0, 4 * sizeof(Point));
+				outfile << frame_counter << " " << quad[0].x << " " << quad[0].y << " "
+					<< quad[1].x << " " << quad[1].y << " "
+					<< quad[2].x << " " << quad[2].y << " "
+					<< quad[3].x << " " << quad[3].y << " " << endl;
 
-				outfile << frame_counter << " " << quadout[0] << " " << linebegin_y << " "
-					<< quadout[1] << " " << lineend_y << " "
-					<< quadout[2] << " " << linebegin_y << " "
-					<< quadout[3] << " " << lineend_y << " " << endl;
+				all_empty_flag = 0;
+				l_empty_flag = 0;
+				r_empty_flag = 0;
 
 				video << img_drawing;
-				
-				//line(img_drawing, quad_2[0], quad_2[1], Scalar(0, 255, 0), 1, 8, 0);
-				//line(img_drawing, quad_2[2], quad_2[3], Scalar(0, 255, 0), 1, 8, 0);
 
-			//outfile << frame_counter << " " << quad[0].x << " " << quad[0].y << " "
-			//		<< quad[1].x << " " << quad[1].y << " "
-			//		<< quad[2].x << " " << quad[2].y << " "
-			//		<< quad[3].x << " " << quad[3].y << " " << endl;
-				
 			}
 
 			break;
@@ -248,9 +279,39 @@ int main(){
 			//clear quad array
 			memset(quad, 0, 4 * sizeof(Point));
 			img_original.copyTo(img_drawing);
+
+			break;
+		case 'l':
+			for (int i = 0; i < 2; i++)
+			{
+				quad[i].x = 0;
+				quad[i].y = 0;
+			}
+			pointNum = pointNum + 2;
+			l_empty_flag = 1;		
+
+			break;
+		case 'r':
+			for (int i = 2; i < 4; i++)
+			{
+				quad[i].x = 0;
+				quad[i].y = 0;
+			}
+			pointNum = 0;
+			drawQuadri(quad);
+			r_empty_flag = 1;
+
+			break;
+		case 'x':
+			memset(quad, 0, 4 * sizeof(Point));
+			pointNum = 0;
+			drawQuadri(quad);
+			all_empty_flag = 1;
+			
+			break;
 		}
 		imshow("Video", img_drawing);
+
 	}
-	//waitKey(0);
 	return 0;
 }
