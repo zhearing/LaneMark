@@ -5,4 +5,7 @@
 ESC - quit the program</br>
 n - next frame of the video</br>
 z - undo the last label point</br>
-c - clear all the label
+c - clear all the label</br>
+l - no left lane on the road</br>
+r - no right lane on the road</br>
+x - no lane on the road
