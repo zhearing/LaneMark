@@ -13,32 +13,41 @@ using namespace cv;
 
 // Global variables
 Mat img_original, img_drawing;
-Point quad[4];
-//Point quad_2[4];
-int quadout[4];
+Point lanePoint[4];
+static int pointOutX[4];
 //the value of pointNum is between 0~4
 static int pointNum = 0;
-//the  value of LineBegin_y, LineEnd_y
-static double linebegin_y = 100;
-static double lineend_y = 320;
+//the value of lineBeginY, lineEndY could be set in advance between 0~480
+static double lineBeginY = 100;
+static double lineEndY = 320;
 //0 present not drawing
-bool drawing_line = 0;
-// aemp_flag = 1 present no lane on the road
-bool all_empty_flag = 0;
-bool l_empty_flag = 0;
-bool r_empty_flag = 0;
+static bool drawingLine = 0;
+//0 present no lane on the road
+static bool allEmptyFlag = 0;
+static bool leftEmptyFlag = 0;
+static bool rightEmptyFlag = 0;
+//number of the marked lanes
+static int leftNum = 0;
+static int rightNum = 0;
+enum
+{
+	LANE_LEFT = 1,
+	LANE_RIGHT = 2,
+	LANE_ALL = 3
+};
+
 /*************************************************
 // Method: help
 // Description: describe the usage
 // Author: Zeyu Zhong
-// Date: 2017/07/10
+// Date: 2017/07/13
 // Returns: void
 // History:
 *************************************************/
 static void help()
 {
 	cout << "This program designed for labeling video \n"
-		"Only if you press the 'n' the present quadrilateral data will be written into txt file\n";
+		"Only if you press the 'n' the present lane lines data will be written into txt file\n";
 
 
 	cout << "Hot keys: \n"
@@ -51,30 +60,27 @@ static void help()
 		"\tx - no lane on the road\n\n"
 		<< endl;
 }
+
 /*************************************************
-// Method: drawQuadri
+// Method: drawLaneLine
 // Description:
 // Author: Zeyu Zhong
 // Date: 2017/07/10
 // Returns: void
-// Parameter: quad the point of Point array
+// Parameter: connect the point of Point array
 // History:
 *************************************************/
-static void drawQuadri(Point * quad) {
-	//for (int i = 0; i < 4; i++)
-	//{
-	//	line(img_drawing, quad[i], quad[(i + 1)], Scalar(0, 255, 0), 1, 8, 0);
-	//	line(img_drawing, quad[i], quad[(i + 1) % 4], Scalar(0, 255, 0), 1, 8, 0);
-	//}
-	line(img_drawing, quad[0], quad[1], Scalar(0, 255, 0), 2, 8, 0);
-	line(img_drawing, quad[2], quad[3], Scalar(0, 255, 0), 2, 8, 0);
+static void drawLaneLine(Point * lanePoint)
+{
+	line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
+	line(img_drawing, lanePoint[2], lanePoint[3], Scalar(0, 255, 0), 2, 8, 0);
 }
 
 /*************************************************
  //Method: onMouse
  //Description: do the actions after onMouse event is called
  // Author: Zeyu Zhong
- // Date: 2017/07/10
+ // Date: 2017/07/13
  //Returns: void
  //Parameter: event
  //Parameter: x Mouse's coordinate
@@ -88,50 +94,43 @@ static void onMouse(int event, int x, int y, int, void*)
 	{
 	case CV_EVENT_LBUTTONDOWN:
 		if (pointNum == 0 || pointNum == 2)
-		{
-			drawing_line = true;
-		}
+			drawingLine = true;
 		else if (pointNum == 1 || pointNum == 3)
-		{
-			drawing_line = false;
-		}
-		quad[pointNum % 4].x = x;
-		quad[pointNum % 4].y = y;
+			drawingLine = false;
+		lanePoint[pointNum % 4].x = x;
+		lanePoint[pointNum % 4].y = y;
 		//cout << "x = " << x << " y = " << y << endl;
 		pointNum++;
-
 
 		break;
 	case CV_EVENT_LBUTTONUP:
 		//finish drawing the rect (use color green for finish)
-
 		circle(img_drawing, cvPoint(x, y), 1, Scalar(0, 255, 0), 2, 8, 0);
-
 		if (pointNum == 4)
 		{
 			pointNum = 0;
-			cout << "draw quadri line" << endl;
-			drawQuadri(quad);
+			//cout << "draw lane line! " << endl;
+			drawLaneLine(lanePoint);
 		}
 
 		break;
 	case CV_EVENT_MOUSEMOVE:
-		if (drawing_line)
+		if (drawingLine)
 		{
 			if (pointNum == 1)
 			{
 				img_original.copyTo(img_drawing);
-				circle(img_drawing, quad[0], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, quad[0], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, lanePoint[0], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
 			}
 			else if (pointNum == 3)
 			{
 				img_original.copyTo(img_drawing);
-				circle(img_drawing, quad[0], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, quad[0], quad[1], Scalar(0, 255, 0), 2, 8, 0);
-				circle(img_drawing, quad[1], 1, Scalar(0, 255, 0), 2, 8, 0);
-				circle(img_drawing, quad[2], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, quad[2], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[1], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[2], 1, Scalar(0, 255, 0), 2, 8, 0);
+				line(img_drawing, lanePoint[2], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
 			}
 		}
 
@@ -144,30 +143,84 @@ static void onMouse(int event, int x, int y, int, void*)
 
 /*************************************************
 // Method: isempty
-// Description: check the quad is empty
+// Description: check the lanePoint is empty
 // Author: Zeyu Zhong
-// Date: 2017/07/10
-// Returns: int
-// Parameter: quad
+// Date: 2017/07/13
+// Returns: void
+// Parameter: lanePoint
 // History:
 *************************************************/
-int isempty(Point * quad)
+void isempty(Point * lanePoint)
 {
-	if (all_empty_flag)
+	for (int i = 0; i < 2; i++)
 	{
-		return 0;
-	}
-	for (int i = 0; i < 4; i++)
-	{
-		if (quad[i].x != 0 || quad[i].y != 0)
+		if (lanePoint[i].x == 0 && lanePoint[i].y == 0)
 		{
-			return 0;
+			leftEmptyFlag = true;
+			pointNum += 2;
 		}
 	}
-	return 1;
+	for (int i = 2; i < 4; i++)
+	{
+		if (lanePoint[i].x == 0 && lanePoint[i].y == 0)
+		{
+			rightEmptyFlag = true;
+			pointNum = 0;
+		}
+	}
+	if (leftEmptyFlag && rightEmptyFlag)
+	{
+		allEmptyFlag = true;
+		leftEmptyFlag = rightEmptyFlag = false;
+		pointNum = 0;
+	}
+	return;
 }
 
-int main(){
+/*************************************************
+// Method: calculateCoordinate
+// Description: calculate the coordinates of the mark points
+// Author: Zeyu Zhong
+// Date: 2017/07/14
+// Returns: void
+// Parameter: type
+// History:
+*************************************************/
+static void calculateCoordinate(int type)
+{
+	switch (type)
+	{
+	case LANE_LEFT:
+		pointOutX[0] = int(double(lineBeginY - (lanePoint[1].x * lanePoint[0].y - lanePoint[0].x * lanePoint[1].y) / double(lanePoint[1].x - lanePoint[0].x)) / (double(lanePoint[1].y - lanePoint[0].y) / double(lanePoint[1].x - lanePoint[0].x)));
+		pointOutX[1] = int(double(lineEndY - (lanePoint[1].x * lanePoint[0].y - lanePoint[0].x * lanePoint[1].y) / double(lanePoint[1].x - lanePoint[0].x)) / (double(lanePoint[1].y - lanePoint[0].y) / double(lanePoint[1].x - lanePoint[0].x)));
+		lanePoint[0].x = pointOutX[0], lanePoint[0].y = int(lineBeginY);
+		lanePoint[1].x = pointOutX[1], lanePoint[1].y = int(lineEndY);
+
+		break;
+	case LANE_RIGHT:
+		pointOutX[2] = int(double(lineBeginY - (lanePoint[3].x * lanePoint[2].y - lanePoint[2].x * lanePoint[3].y) / double(lanePoint[3].x - lanePoint[2].x)) / (double(lanePoint[3].y - lanePoint[2].y) / double(lanePoint[3].x - lanePoint[2].x)));
+		pointOutX[3] = int(double(lineEndY - (lanePoint[3].x * lanePoint[2].y - lanePoint[2].x * lanePoint[3].y) / double(lanePoint[3].x - lanePoint[2].x)) / (double(lanePoint[3].y - lanePoint[2].y) / double(lanePoint[3].x - lanePoint[2].x)));
+		lanePoint[2].x = pointOutX[2], lanePoint[2].y = int(lineBeginY);
+		lanePoint[3].x = pointOutX[3], lanePoint[3].y = int(lineEndY);
+
+		break;
+	case LANE_ALL:
+		pointOutX[0] = int(double(lineBeginY - (lanePoint[1].x * lanePoint[0].y - lanePoint[0].x * lanePoint[1].y) / double(lanePoint[1].x - lanePoint[0].x)) / (double(lanePoint[1].y - lanePoint[0].y) / double(lanePoint[1].x - lanePoint[0].x)));
+		pointOutX[1] = int(double(lineEndY - (lanePoint[1].x * lanePoint[0].y - lanePoint[0].x * lanePoint[1].y) / double(lanePoint[1].x - lanePoint[0].x)) / (double(lanePoint[1].y - lanePoint[0].y) / double(lanePoint[1].x - lanePoint[0].x)));
+		lanePoint[0].x = pointOutX[0], lanePoint[0].y = int(lineBeginY);
+		lanePoint[1].x = pointOutX[1], lanePoint[1].y = int(lineEndY);
+		pointOutX[2] = int(double(lineBeginY - (lanePoint[3].x * lanePoint[2].y - lanePoint[2].x * lanePoint[3].y) / double(lanePoint[3].x - lanePoint[2].x)) / (double(lanePoint[3].y - lanePoint[2].y) / double(lanePoint[3].x - lanePoint[2].x)));
+		pointOutX[3] = int(double(lineEndY - (lanePoint[3].x * lanePoint[2].y - lanePoint[2].x * lanePoint[3].y) / double(lanePoint[3].x - lanePoint[2].x)) / (double(lanePoint[3].y - lanePoint[2].y) / double(lanePoint[3].x - lanePoint[2].x)));
+		lanePoint[2].x = pointOutX[2], lanePoint[2].y = int(lineBeginY);
+		lanePoint[3].x = pointOutX[3], lanePoint[3].y = int(lineEndY);
+
+		break;
+	}
+	return;
+}
+
+int main()
+{
 	namedWindow("Video");
 	ofstream outfile("1.txt");
 	help();
@@ -176,12 +229,12 @@ int main(){
 	video.open("out.avi", CV_FOURCC('X', 'V', 'I', 'D'),
 		capture.get(CV_CAP_PROP_FPS), cvSize(capture.get(CV_CAP_PROP_FRAME_WIDTH),
 		capture.get(CV_CAP_PROP_FRAME_HEIGHT)));
-
 	capture >> img_original;
 	img_original.copyTo(img_drawing);
 	imshow("Video", img_original);
 	setMouseCallback("Video", onMouse, 0);
-	int frame_counter = 0;
+	int frameCounter = 0;
+
 	while (1)
 	{
 		int c = waitKey(0);
@@ -195,123 +248,123 @@ int main(){
 		{
 		case 'n':
 			//read the next frame
-			++frame_counter;
+			++frameCounter;
 			capture >> img_original;
 			if (img_original.empty())
 			{
+				outfile << frameCounter << " " << leftNum << " " << rightNum << " " << endl;
+
 				cout << "\nVideo Finished!" << endl;
 				cvDestroyWindow("Video");
 				return 0;
 			}
-
 			img_original.copyTo(img_drawing);
-
-			if (!isempty(quad))
+			isempty(lanePoint);
+			if (!allEmptyFlag)
 			{
-				if (!all_empty_flag)
+				//if (frameCounter != 1)
+				//{
+				if (!leftEmptyFlag)
 				{
-					if (frame_counter != 1)
-					{
-						if (!l_empty_flag)
-						{
-							quadout[0] = int(double(linebegin_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-							quadout[1] = int(double(lineend_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-							quad[0].x = quadout[0], quad[0].y = int(linebegin_y);
-							quad[1].x = quadout[1], quad[1].y = int(lineend_y);
-						}
-						if (!r_empty_flag)
-						{
-							quadout[2] = int(double(linebegin_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
-							quadout[3] = int(double(lineend_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
-							quad[2].x = quadout[2], quad[2].y = int(linebegin_y);
-							quad[3].x = quadout[3], quad[3].y = int(lineend_y);
-						}
-					}
-					else if ((frame_counter == 1))
-					{
-						quadout[0] = int(double(linebegin_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-						quadout[1] = int(double(lineend_y - (quad[1].x * quad[0].y - quad[0].x * quad[1].y) / double(quad[1].x - quad[0].x)) / (double(quad[1].y - quad[0].y) / double(quad[1].x - quad[0].x)));
-						quad[0].x = quadout[0], quad[0].y = int(linebegin_y);
-						quad[1].x = quadout[1], quad[1].y = int(lineend_y);
-						quadout[2] = int(double(linebegin_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
-						quadout[3] = int(double(lineend_y - (quad[3].x * quad[2].y - quad[2].x * quad[3].y) / double(quad[3].x - quad[2].x)) / (double(quad[3].y - quad[2].y) / double(quad[3].x - quad[2].x)));
-						quad[2].x = quadout[2], quad[2].y = int(linebegin_y);
-						quad[3].x = quadout[3], quad[3].y = int(lineend_y);
-					}
-				}		
-
-				drawQuadri(quad);
-				//memset(quad, 0, 4 * sizeof(Point));
-				outfile << frame_counter << " " << quad[0].x << " " << quad[0].y << " "
-					<< quad[1].x << " " << quad[1].y << " "
-					<< quad[2].x << " " << quad[2].y << " "
-					<< quad[3].x << " " << quad[3].y << " " << endl;
-
-				all_empty_flag = 0;
-				l_empty_flag = 0;
-				r_empty_flag = 0;
-
-				video << img_drawing;
-
+					calculateCoordinate(LANE_LEFT);
+					leftNum++;
+				}
+				if (!rightEmptyFlag)
+				{
+					calculateCoordinate(LANE_RIGHT);
+					rightNum++;
+				}
+				//}
+				//else if (frameCounter == 1)
+				//{
+				//	if (leftEmptyFlag)
+				//		calculateCoordinate(LANE_RIGHT);
+				//	else if (rightEmptyFlag)
+				//		calculateCoordinate(LANE_LEFT);
+				//	else
+				//	{
+				//		calculateCoordinate(LANE_ALL);
+				//		leftNum++;
+				//		rightNum++;
+				//	}
+				//}
 			}
+			else
+				//include the first frame has no lane line
+				memset(lanePoint, 0, 4 * sizeof(Point));
+
+			outfile << frameCounter << " " << lanePoint[0].x << " " << lanePoint[0].y << " "
+				<< lanePoint[1].x << " " << lanePoint[1].y << " "
+				<< lanePoint[2].x << " " << lanePoint[2].y << " "
+				<< lanePoint[3].x << " " << lanePoint[3].y << " " << endl;
+
+			drawLaneLine(lanePoint);
+			video << img_drawing;
+			//memset(lanePoint, 0, 4 * sizeof(Point));	//Whether to clear the coordinates of the previous frame after marking	
+			//clear all flags
+			allEmptyFlag = 0;
+			leftEmptyFlag = 0;
+			rightEmptyFlag = 0;
+			cout << "left mark: " << leftNum << " right mark: " << rightNum << endl;
 
 			break;
 		case 'z':
 			//undo the latest labeling point
 			if (pointNum == 0)
 			{
-				cout << "if you want to clear the existent quad please press 'c'" << endl;
+				cout << "if you want to clear the existent lanePoint please press 'c'" << endl;
 				break;
 			}
 			pointNum--;
-			quad[pointNum].x = 0;
-			quad[pointNum].y = 0;
+			lanePoint[pointNum].x = 0;
+			lanePoint[pointNum].y = 0;
 			img_original.copyTo(img_drawing);
 			for (int i = 0; i < pointNum; i++)
 			{
-				circle(img_drawing, quad[i], 1, Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[i], 1, Scalar(0, 255, 0), 2, 8, 0);
 				if (pointNum == 2)
-					line(img_drawing, quad[0], quad[1], Scalar(0, 255, 0), 2, 8, 0);
+					line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
 			}
 
 			break;
 		case 'c':
-			//clear quad array
-			memset(quad, 0, 4 * sizeof(Point));
+			//clear lanePoint array
+			memset(lanePoint, 0, 4 * sizeof(Point));
 			img_original.copyTo(img_drawing);
 
 			break;
 		case 'l':
+			//mark empty left lane
 			for (int i = 0; i < 2; i++)
 			{
-				quad[i].x = 0;
-				quad[i].y = 0;
+				lanePoint[i].x = 0;
+				lanePoint[i].y = 0;
 			}
-			pointNum = pointNum + 2;
-			l_empty_flag = 1;		
+			pointNum += 2;
+			leftEmptyFlag = 1;
 
 			break;
 		case 'r':
+			//mark right empty lane
 			for (int i = 2; i < 4; i++)
 			{
-				quad[i].x = 0;
-				quad[i].y = 0;
+				lanePoint[i].x = 0;
+				lanePoint[i].y = 0;
 			}
 			pointNum = 0;
-			drawQuadri(quad);
-			r_empty_flag = 1;
+			rightEmptyFlag = 1;
 
 			break;
 		case 'x':
-			memset(quad, 0, 4 * sizeof(Point));
+			//mark all empty lane
+			memset(lanePoint, 0, 4 * sizeof(Point));
 			pointNum = 0;
-			drawQuadri(quad);
-			all_empty_flag = 1;
-			
+			allEmptyFlag = 1;
+
 			break;
 		}
-		imshow("Video", img_drawing);
 
+		imshow("Video", img_drawing);
 	}
 	return 0;
 }
