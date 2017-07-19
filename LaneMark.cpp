@@ -1,8 +1,9 @@
 #include <iostream>
-#include<fstream>
-#include <time.h>
+#include <fstream>
+#include <ctime>
 #include "stdio.h"
 #include "math.h"
+#include <windows.h>
 #include <opencv2/opencv.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -247,6 +248,33 @@ int main()
 		switch ((char)c)
 		{
 		case 'n':
+			isempty(lanePoint);
+			if (!allEmptyFlag)
+			{
+				if (!leftEmptyFlag)
+				{
+					calculateCoordinate(LANE_LEFT);
+					leftNum++;
+				}
+				if (!rightEmptyFlag)
+				{
+					calculateCoordinate(LANE_RIGHT);
+					rightNum++;
+				}
+			}
+			else
+				//include the first frame has no lane line
+				memset(lanePoint, 0, 4 * sizeof(Point));
+			cout << "left mark: " << leftNum << " right mark: " << rightNum << endl;
+			img_original.copyTo(img_drawing);
+			drawLaneLine(lanePoint);
+			outfile << frameCounter << " " << lanePoint[0].x << " " << lanePoint[0].y << " "
+				<< lanePoint[1].x << " " << lanePoint[1].y << " "
+				<< lanePoint[2].x << " " << lanePoint[2].y << " "
+				<< lanePoint[3].x << " " << lanePoint[3].y << " " << endl;
+			video << img_drawing;
+
+			//Sleep(500);
 			//read the next frame
 			++frameCounter;
 			capture >> img_original;
@@ -259,53 +287,13 @@ int main()
 				return 0;
 			}
 			img_original.copyTo(img_drawing);
-			isempty(lanePoint);
-			if (!allEmptyFlag)
-			{
-				//if (frameCounter != 1)
-				//{
-				if (!leftEmptyFlag)
-				{
-					calculateCoordinate(LANE_LEFT);
-					leftNum++;
-				}
-				if (!rightEmptyFlag)
-				{
-					calculateCoordinate(LANE_RIGHT);
-					rightNum++;
-				}
-				//}
-				//else if (frameCounter == 1)
-				//{
-				//	if (leftEmptyFlag)
-				//		calculateCoordinate(LANE_RIGHT);
-				//	else if (rightEmptyFlag)
-				//		calculateCoordinate(LANE_LEFT);
-				//	else
-				//	{
-				//		calculateCoordinate(LANE_ALL);
-				//		leftNum++;
-				//		rightNum++;
-				//	}
-				//}
-			}
-			else
-				//include the first frame has no lane line
-				memset(lanePoint, 0, 4 * sizeof(Point));
-
-			outfile << frameCounter << " " << lanePoint[0].x << " " << lanePoint[0].y << " "
-				<< lanePoint[1].x << " " << lanePoint[1].y << " "
-				<< lanePoint[2].x << " " << lanePoint[2].y << " "
-				<< lanePoint[3].x << " " << lanePoint[3].y << " " << endl;
 
 			drawLaneLine(lanePoint);
-			video << img_drawing;
 			//memset(lanePoint, 0, 4 * sizeof(Point));	//Whether to clear the coordinates of the previous frame after marking	
 			//clear all flags
 			allEmptyFlag = 0;
 			leftEmptyFlag = 0;
 			rightEmptyFlag = 0;
-			cout << "left mark: " << leftNum << " right mark: " << rightNum << endl;
 
 			break;
 		case 'z':
@@ -360,6 +348,8 @@ int main()
 			memset(lanePoint, 0, 4 * sizeof(Point));
 			pointNum = 0;
 			allEmptyFlag = 1;
+			leftEmptyFlag = 0;
+			rightEmptyFlag = 0;
 
 			break;
 		}
