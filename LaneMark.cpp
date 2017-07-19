@@ -1,9 +1,7 @@
 #include <iostream>
 #include <fstream>
-#include <ctime>
 #include "stdio.h"
 #include "math.h"
-#include <windows.h>
 #include <opencv2/opencv.hpp>
 #include <opencv/cv.h>
 #include <opencv/highgui.h>
@@ -73,8 +71,8 @@ static void help()
 *************************************************/
 static void drawLaneLine(Point * lanePoint)
 {
-	line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
-	line(img_drawing, lanePoint[2], lanePoint[3], Scalar(0, 255, 0), 2, 8, 0);
+	line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 1, 8, 0);
+	line(img_drawing, lanePoint[2], lanePoint[3], Scalar(0, 255, 0), 1, 8, 0);
 }
 
 /*************************************************
@@ -106,7 +104,7 @@ static void onMouse(int event, int x, int y, int, void*)
 		break;
 	case CV_EVENT_LBUTTONUP:
 		//finish drawing the rect (use color green for finish)
-		circle(img_drawing, cvPoint(x, y), 1, Scalar(0, 255, 0), 2, 8, 0);
+		circle(img_drawing, cvPoint(x, y), 1, Scalar(0, 255, 0), 1, 8, 0);
 		if (pointNum == 4)
 		{
 			pointNum = 0;
@@ -121,17 +119,17 @@ static void onMouse(int event, int x, int y, int, void*)
 			if (pointNum == 1)
 			{
 				img_original.copyTo(img_drawing);
-				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, lanePoint[0], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 1, 8, 0);
+				line(img_drawing, lanePoint[0], cvPoint(x, y), Scalar(0, 255, 0), 1, 8, 0);
 			}
 			else if (pointNum == 3)
 			{
 				img_original.copyTo(img_drawing);
-				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 2, 8, 0);
-				circle(img_drawing, lanePoint[1], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
-				circle(img_drawing, lanePoint[2], 1, Scalar(0, 255, 0), 2, 8, 0);
-				line(img_drawing, lanePoint[2], cvPoint(x, y), Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[0], 1, Scalar(0, 255, 0), 1, 8, 0);
+				circle(img_drawing, lanePoint[1], 1, Scalar(0, 255, 0), 1, 8, 0);
+				line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 1, 8, 0);
+				circle(img_drawing, lanePoint[2], 1, Scalar(0, 255, 0), 1, 8, 0);
+				line(img_drawing, lanePoint[2], cvPoint(x, y), Scalar(0, 255, 0), 1, 8, 0);
 			}
 		}
 
@@ -274,7 +272,6 @@ int main()
 				<< lanePoint[3].x << " " << lanePoint[3].y << " " << endl;
 			video << img_drawing;
 
-			//Sleep(500);
 			//read the next frame
 			++frameCounter;
 			capture >> img_original;
@@ -294,6 +291,7 @@ int main()
 			allEmptyFlag = 0;
 			leftEmptyFlag = 0;
 			rightEmptyFlag = 0;
+			pointNum = 0;
 
 			break;
 		case 'z':
@@ -309,9 +307,11 @@ int main()
 			img_original.copyTo(img_drawing);
 			for (int i = 0; i < pointNum; i++)
 			{
-				circle(img_drawing, lanePoint[i], 1, Scalar(0, 255, 0), 2, 8, 0);
+				circle(img_drawing, lanePoint[i], 1, Scalar(0, 255, 0), 1, 8, 0);
+				if (pointNum == 1)
+					drawingLine = true;
 				if (pointNum == 2)
-					line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 2, 8, 0);
+					line(img_drawing, lanePoint[0], lanePoint[1], Scalar(0, 255, 0), 1, 8, 0);
 			}
 
 			break;
@@ -319,6 +319,10 @@ int main()
 			//clear lanePoint array
 			memset(lanePoint, 0, 4 * sizeof(Point));
 			img_original.copyTo(img_drawing);
+			pointNum = 0;
+			allEmptyFlag = 0;
+			leftEmptyFlag = 0;
+			rightEmptyFlag = 0;
 
 			break;
 		case 'l':
